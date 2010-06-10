@@ -113,6 +113,7 @@ function simpletest_drush_run_test($class) {
     $result = db_query("SELECT * FROM {simpletest} WHERE test_id = %d AND status = 'fail' ORDER BY test_class, message_id", $test_id);
     while ($row = db_fetch_object($result)) {
       drush_log("{$row->function}:\n  {$row->message}", 'error');
+      exit(1);
     }
   }
 }
