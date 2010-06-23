@@ -15,6 +15,7 @@ function test_drush_command() {
   $items['test'] = array(
     'callback' => 'simpletest_drush_test',
     'description' => "List all the available tests for the site.",
+    'drupal dependencies' => array('simpletest'),
   );
 
   return $items;
@@ -35,16 +36,19 @@ function test_drush_help($section) {
  */
 function simpletest_drush_test($param = NULL) {
   // Check runtime requirements.
-  if (!module_exists('simpletest')) {
-    return drush_log(dt('The simpletest module must be enabled before this script can run.'), 'error');
-  }
   if (!drush_get_option('uri')) {
     return drush_log(dt("You must specify this site's URL using the --uri parameter."), 'error');
   }
 
   // Retrieve all tests and groups.
-  $all_tests = simpletest_get_all_tests();
-  $groups = simpletest_drush_test_groups($all_tests);
+  if (function_exists('simpletest_get_all_tests')) {
+    $all_tests = simpletest_get_all_tests();
+    $groups = simpletest_drush_test_groups($all_tests);
+  }
+  else {
+    $all_tests = simpletest_test_get_all_classes();
+    $groups = simpletest_test_get_all();
+  }
 
   // Specific test class specified.
   if (isset($param) && in_array($param, $all_tests, TRUE)) {
@@ -97,7 +101,7 @@ function simpletest_drush_test($param = NULL) {
  * Run a single test and display any failure messages.
  */
 function simpletest_drush_run_test($class) {
-  db_query('INSERT INTO {simpletest_test_id} VALUES (default)');
+  db_query('INSERT INTO {simpletest_test_id} (test_id) VALUES (default)');
   $test_id = db_last_insert_id('simpletest_test_id', 'test_id');
 
   $test = new $class($test_id);
