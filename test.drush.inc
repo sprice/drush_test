@@ -40,14 +40,19 @@ function simpletest_drush_test($param = NULL) {
     return drush_log(dt("You must specify this site's URL using the --uri parameter."), 'error');
   }
 
+  cache_clear_all('simpletest', 'cache');
+
   // Retrieve all tests and groups.
   if (function_exists('simpletest_get_all_tests')) {
     $all_tests = simpletest_get_all_tests();
     $groups = simpletest_drush_test_groups($all_tests);
   }
   else {
-    $all_tests = simpletest_test_get_all_classes();
     $groups = simpletest_test_get_all();
+    $all_tests = array();
+    foreach ($groups as $group) {
+      $all_tests = array_merge($all_tests, array_keys($group));
+    }
   }
 
   // Specific test class specified.
@@ -59,19 +64,17 @@ function simpletest_drush_test($param = NULL) {
   // Specific group specified.
   else if (isset($param) && isset($groups[$param])) {
     foreach (array_keys($groups[$param]) as $class) {
-      simpletest_drush_run_test($class);
+      drush_backend_invoke('test '. $class);
     }
-    simpletest_clean_environment();
     return;
   }
   // Run all tests.
   else if (isset($param) && $param === 'all') {
     foreach (array_keys($groups) as $group) {
       foreach (array_keys($groups[$group]) as $class) {
-        simpletest_drush_run_test($class);
+        drush_backend_invoke('test '. $class);
       }
     }
-    simpletest_clean_environment();
     return;
   }
   // Clean test environment.
