@@ -13,7 +13,7 @@ function test_drush_command() {
   $items = array();
 
   $items['test'] = array(
-    'callback' => 'simpletest_drush_test',
+    'callback' => 'drush_test_simpletest',
     'description' => "List all the available tests for the site.",
     'drupal dependencies' => array('simpletest'),
   );
@@ -34,7 +34,7 @@ function test_drush_help($section) {
 /**
  * Test command callback.
  */
-function simpletest_drush_test($param = NULL) {
+function drush_test_simpletest($param = NULL) {
   // Check runtime requirements.
   if (!drush_get_option('uri')) {
     return drush_log(dt("You must specify this site's URL using the --uri parameter."), 'error');
@@ -104,8 +104,9 @@ function simpletest_drush_test($param = NULL) {
  * Run a single test and display any failure messages.
  */
 function simpletest_drush_run_test($class) {
-  db_query('INSERT INTO {simpletest_test_id} (test_id) VALUES (default)');
-  $test_id = db_last_insert_id('simpletest_test_id', 'test_id');
+  $test_id = db_insert('simpletest_test_id')
+    ->useDefaults(array('test_id'))
+    ->execute();
 
   $test = new $class($test_id);
   $test->run();
