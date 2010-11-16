@@ -118,9 +118,10 @@ function simpletest_drush_run_test($class) {
 
   // If there were some failed tests show them.
   if ($status === 'error') {
-    $result = db_query("SELECT * FROM {simpletest} WHERE test_id = %d AND status = 'fail' ORDER BY test_class, message_id", $test_id);
-    while ($row = db_fetch_object($result)) {
-      drush_set_error('DRUSH_TEST_FAIL', dt("Test @function failed: @message", array('@function' => $row->function, '@message' => $row->message)));
+    $args = array(':test_id' => $test_id);
+    $result = db_query("SELECT * FROM {simpletest} WHERE test_id = :test_id AND status = 'fail' ORDER BY test_class, message_id", $args);
+    foreach($result as $record) {
+      drush_set_error('DRUSH_TEST_FAIL', dt("Test @function failed: @message", array('@function' => $record->function, '@message' => $record->message)));
     }
   }
 }
