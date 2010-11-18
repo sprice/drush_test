@@ -104,9 +104,16 @@ function drush_test_simpletest($param = NULL) {
  * Run a single test and display any failure messages.
  */
 function simpletest_drush_run_test($class) {
-  $test_id = db_insert('simpletest_test_id')
+  $drupal_version_default = drush_get_context('DRUSH_DRUPAL_MAJOR_VERSION', 6) . '.x';
+  if ($drupal_version_default === '7.x') {
+    $test_id = db_insert('simpletest_test_id')
     ->useDefaults(array('test_id'))
     ->execute();
+  }
+  else {
+    db_query('INSERT INTO {simpletest_test_id} (test_id) VALUES (default)');
+    $test_id = db_last_insert_id('simpletest_test_id', 'test_id');
+  }
 
   $test = new $class($test_id);
   $test->run();
@@ -118,10 +125,18 @@ function simpletest_drush_run_test($class) {
 
   // If there were some failed tests show them.
   if ($status === 'error') {
-    $args = array(':test_id' => $test_id);
-    $result = db_query("SELECT * FROM {simpletest} WHERE test_id = :test_id AND status = 'fail' ORDER BY test_class, message_id", $args);
-    foreach($result as $record) {
-      drush_set_error('DRUSH_TEST_FAIL', dt("Test @function failed: @message", array('@function' => $record->function, '@message' => $record->message)));
+    if ($drupal_version_default === '7.x') {
+      $args = array(':test_id' => $test_id);
+      $result = db_query("SELECT * FROM {simpletest} WHERE test_id = :test_id AND status = 'fail' ORDER BY test_class, message_id", $args);
+      foreach($result as $record) {
+        drush_set_error('DRUSH_TEST_FAIL', dt("Test @function failed: @message", array('@function' => $record->function, '@message' => $record->message)));
+      }
+    }
+    else {
+      $result = db_query("SELECT * FROM {simpletest} WHERE test_id = %d AND status = 'fail' ORDER BY test_class, message_id", $test_id);
+      while ($row = db_fetch_object($result)) {
+        drush_set_error('DRUSH_TEST_FAIL', dt("Test @function failed: @message", array('@function' => $row->function, '@message' => $row->message)));
+      }
     }
   }
 }
